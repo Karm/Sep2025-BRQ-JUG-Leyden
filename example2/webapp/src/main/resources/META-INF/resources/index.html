@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <title>Sunset</title>
+    <style>
+        body {
+          background-color: black;
+          margin: 0;
+          padding: 0;
+          overflow: hidden;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        #sunset-canvas {
+          /* Canvas is fixed 800x600 pixels, scaled up */
+          width: 100vw;
+          height: 100vh;
+          object-fit: cover;
+          image-rendering: pixelated; /* chunky aesthetic */
+        }
+        #sps-overlay {
+          position: fixed;
+          top: 10px;
+          left: 10px;
+          color: #ff0000;
+          font-family: 'Courier New', Courier, monospace;
+          font-size: 24px;
+          text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+          z-index: 10;
+        }
+    </style>
+</head>
+<body>
+<div id="sps-overlay">Sunsets Per Second: 0</div>
+<canvas id="sunset-canvas" width="800" height="600"></canvas>
+<script>
+    const canvas = document.getElementById("sunset-canvas");
+    const ctx = canvas.getContext("2d");
+    const spsOverlay = document.getElementById("sps-overlay");
+
+    let imagesDisplayedThisSecond = 0;
+
+    async function fetchFrame() {
+      const response = await fetch("/sunset");
+      if (!response.ok) throw new Error("Server error");
+      const blob = await response.blob();
+      return createImageBitmap(blob);
+    }
+
+    async function renderLoop() {
+      try {
+        const image = await fetchFrame();
+        ctx.drawImage(image, 0, 0, 800, 600);
+        image.close();
+        imagesDisplayedThisSecond++;
+      } catch (err) {
+        console.error("Frame error:", err);
+      }
+      requestAnimationFrame(renderLoop); // pace to 60 FPS
+    }
+
+    function updateSPS() {
+      spsOverlay.textContent = `Sunsets Per Second: ${imagesDisplayedThisSecond}`;
+      imagesDisplayedThisSecond = 0;
+    }
+    setInterval(updateSPS, 1000);
+
+    requestAnimationFrame(renderLoop);
+</script>
+</body>
+</html>
